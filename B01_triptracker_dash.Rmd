@@ -1,0 +1,240 @@
+---
+title: "Campaign Trip Tracker"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+
+library(flexdashboard)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(glue)
+library(plotly)
+library(DT)
+library(kableExtra)
+library(leaflet)
+# library(ggmap)
+library(RColorBrewer)
+library(htmlwidgets)
+library(htmltools)
+library(tigris)
+options(tigris_class = "sf")
+
+### DATA LOADING AND PREP
+
+#load data file with events
+events <- readRDS("events_saved.rds")
+
+#by state counts
+bystate <- events %>% 
+  filter(date < Sys.Date()) %>% 
+  count(state) %>% 
+  arrange(desc(n)) %>% 
+  head(10)
+
+#reorder factors to order bars descending
+bystate <- bystate %>% 
+  mutate(
+    state = as.factor(state),
+    state = fct_reorder(state, desc(n))
+    )
+
+# by cand_fullname counts to date
+bycand <- events %>%
+  filter(date < Sys.Date()) %>% 
+  count(cand_fullname) %>%
+  arrange(desc(n)) %>% 
+  head(10)
+
+#reorder factors to order bars descending
+bycand <- bycand %>%
+  mutate(
+    cand_fullname = as.factor(cand_fullname),
+    cand_fullname = fct_reorder(cand_fullname, desc(n))
+    )
+
+#slimmed version of table for display in summary tab
+events_selectcols <- events %>% 
+  select(cand_fullname, 
+         date, 
+         # thru_date,
+         city, 
+         state, 
+         addtl_cities, 
+         event_type, 
+         sponsor, 
+         description)
+
+
+### GEOGRAPHIC DATA ####
+
+# # Downloading the shapefiles for states at the lowest resolution from tigris
+# states <- states(cb=T)
+# #save result
+# saveRDS(states, "states_saved.rds")
+
+## use saved version to pull states from to save processing time (comment out code above when doing so)
+states <- readRDS("states_saved.rds")
+
+# set date and time objects
+d <- Sys.Date()
+
+t <- Sys.time()
+#set to eastern time
+t <- .POSIXct(t, "EST")
+
+```
+
+
+Summary Charts and Table
+=====================================
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Total trips by all candidates to date 
+
+```{r map}
+
+#### STATE BY STATE SHADED MAP ####
+
+upcoming_states <- events %>% 
+  filter(date <= Sys.Date()) %>% 
+  group_by(state) %>%
+  summarize(total=n()) 
+
+# Now we use the Tigris function geo_join to bring together 
+# are the two columns they'll be joined by
+states_merged_sb <- geo_join(states, upcoming_states, "STUSPS", "state")
+
+# Creating a color palette based on the number range in the total column
+pal <- colorNumeric("YlOrRd", domain=states_merged_sb$total)
+
+# Getting rid of rows with NA values
+# Using the Base R method of filtering subset() because we're dealing with a SpatialPolygonsDataFrame and not a normal data frame, thus filter() wouldn't work
+states_merged_sb <- subset(states_merged_sb, !is.na(total))
+states_merged_sb$total <- as.integer(states_merged_sb$total)
+
+#create map with hover popups
+
+popup_sb <- paste0("Trips: ", as.character(states_merged_sb$total))
+
+leaflet() %>%
+  addTiles() %>%
+  # setView(-98.483330, 38.712046, zoom = 4) %>% 
+  addPolygons(data = states_merged_sb , 
+              fillColor = ~pal(states_merged_sb$total), 
+              fillOpacity = 0.9, 
+              weight = 0.2, 
+              smoothFactor = 0.2,
+              highlight = highlightOptions(
+                weight = 5,
+                color = "#666",
+                fillOpacity = 0.7,
+                bringToFront = TRUE),
+              label=popup_sb,
+              labelOptions = labelOptions(
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto")) %>%
+  addLegend(pal = pal, 
+            values = states_merged_sb$total,
+            # bins = 4,
+            position = "bottomright", 
+            title = "Total trips", 
+            labFormat = labelFormat(digits = 0)
+            )
+
+
+
+```
+
+
+
+
+
+
+
+Row {data-height=350}
+-----------------------------------------------------------------------
+
+### Top states for those trips 
+
+```{r bar_topstates}
+
+
+d <- ggplot(data = bystate, aes(x = state, y = n)) +
+  geom_col(
+    # color = "#848484",
+    fill = "#ffb3ba") + 
+  theme_minimal()
+
+d2 <- d + labs(x ="", y = "") +
+  theme(legend.title=element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+dd <- ggplotly(d2) 
+
+dd_nomenu <- dd %>% config(displayModeBar = FALSE)
+dd_nomenu
+  
+
+
+```
+
+
+<!-- ### Candidates with the most trips  -->
+
+<!-- ```{r bar_topcands} -->
+
+
+
+<!-- d <- ggplot(data = bycand, aes(x = cand_fullname, y = n)) + -->
+<!--   geom_col( -->
+<!--     # color = "#848484", -->
+<!--     fill = "#FFC966") + -->
+<!--   # coord_flip() + -->
+<!--   theme_minimal() -->
+
+<!-- d2 <- d + labs(x ="", y = "") + -->
+<!--   theme(plot.title = element_text(hjust = 0.5)) + -->
+<!--   # scale_fill_manual(values=cbPalette) + -->
+<!--   theme(legend.title=element_blank()) + -->
+<!--   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -->
+
+<!-- dd <- ggplotly(d2) -->
+
+<!-- dd_nomenu <- dd %>% config(displayModeBar = FALSE) -->
+<!-- dd_nomenu -->
+
+
+<!-- ``` -->
+
+
+
+
+<!-- Row  -->
+<!-- ----------------------------------------------------------------------- -->
+
+<!-- ### Total trips since midterms -->
+
+<!-- ```{r box_pastevents} -->
+
+<!-- tot <- events %>% -->
+<!--   filter(date < today("EST")) %>% -->
+<!--   nrow() -->
+
+<!-- valueBox(tot, icon = "fa-step-backward", color = "#F3B279") -->
+
+<!-- #where do the "font awesome" icons come from? -->
+<!-- # https://fontawesome.com/icons?d=gallery&m=free -->
+
+<!-- ``` -->
+
+<!-- ### Another box here -->
+

@@ -1,0 +1,156 @@
+---
+title: "White House Salaries"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme: cerulean
+
+---
+
+```{r setup, include=FALSE}
+
+library(flexdashboard)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(glue)
+library(plotly)
+library(DT)
+library(kableExtra)
+library(htmlwidgets)
+library(htmltools)
+library(readxl)
+
+
+#import formatted version in Excel
+salaries <- read_xlsx("whsalaries_2017_thru_2019.xlsx")
+
+salaries <- salaries %>% 
+  clean_names()  
+
+glimpse(salaries)
+
+
+
+#### looking for those who are in both years' of data ####
+
+yr2018 <- salaries %>% 
+  filter(year == "2018")
+
+yr2019 <- salaries %>% 
+  filter(year == "2019")
+
+joined <- inner_join(yr2018, yr2019, by = c("name" = "name"))
+
+names(joined)
+
+#select relevant columns and rename
+joined2 <- joined %>% 
+  select(
+    name,
+    salary2018 = salary.x,
+    salary2019 = salary.y,
+    title2018 = positiontitle.x,
+    title2019 = positiontitle.y
+    )
+
+raises <- joined2 %>% 
+  mutate(
+    difference = (salary2019 - salary2018),
+    pct_change = (difference/salary2018)
+  ) %>% 
+  select(
+    name,
+    salary2018,
+    salary2019,
+    difference,
+    pct_change,
+    title2018,
+    title2019
+  ) %>% 
+  arrange(desc(pct_change))
+
+
+
+
+
+
+```
+
+
+
+
+
+2017-2019 Salaries Data 
+=====================================
+To filter, click on the boxes at the top of the columns. To sort, use the up/down arrows by the column names. 
+
+
+Row {data-height=1000}
+-----------------------------------------------------------------------
+
+```{r}
+
+salaries_table <- salaries %>% 
+  select(
+    year, first_mid = first_m, last, everything(),
+    -name, -first, -paybasis #paybasis is the same per annum for everyone in the data
+    ) %>% 
+  mutate(
+    year = as.factor(year),
+    status = as.factor(status)
+    ) %>% 
+  arrange(
+    desc(year),
+    last,
+    first_mid
+  )
+
+datatable(salaries_table,
+          rownames = FALSE,
+          filter = "top",
+          extensions = 'Buttons',
+          options = list(searchHighlight = TRUE, bPaginate = FALSE, dom = 'Bfrtip',
+       buttons = c('copy', 'csv', 'excel', 'print')
+          )) %>%
+      formatCurrency('salary', digits = 0) %>%
+      formatStyle(c("last","first_mid", "salary"), fontWeight = 'bold') %>%
+      # formatStyle("salary", color = "darkred") %>%
+      formatStyle(
+      'salary',
+      background = styleColorBar(salaries_table$salary, 'steelblue'),
+      backgroundSize = '100% 90%',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
+    )
+
+
+```
+
+
+Who got the biggest raises (2018 to 2019)
+=====================================
+To filter, click on the boxes at the top of the columns. To sort, use the up/down arrows by the column names.
+
+Row {data-height=1000}
+-----------------------------------------------------------------------
+
+```{r}
+
+datatable(raises,
+          rownames = FALSE,
+          filter = "top",
+          extensions = 'Buttons', 
+          options = list(searchHighlight = TRUE, bPaginate = FALSE, dom = 'Bfrtip',
+       buttons = c('copy', 'csv', 'excel', 'print')
+          )) %>% 
+      formatCurrency(c("salary2018", "salary2019", "difference"), digits = 0) %>% 
+      formatStyle(c("name", "difference", "pct_change"), fontWeight = 'bold') %>% 
+      formatPercentage("pct_change") %>% 
+      formatStyle(c("difference", "pct_change"), color = "darkgreen") 
+
+
+
+```
+
