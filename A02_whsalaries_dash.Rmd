@@ -82,9 +82,9 @@ raises <- joined2 %>%
 
 
 
-2017-2019 Salaries Data 
+2018-2019 Salaries Data 
 =====================================
-To filter, click on the boxes at the top of the columns. To sort, use the up/down arrows by the column names. 
+To filter, click on the boxes at the top of the columns. To sort, use the up/down arrows by the column names.
 
 
 Row {data-height=1000}
@@ -106,6 +106,7 @@ salaries_table <- salaries %>%
     last,
     first_mid
   )
+
 
 datatable(salaries_table,
           rownames = FALSE,

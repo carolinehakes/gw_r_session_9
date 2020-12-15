@@ -156,10 +156,6 @@ leaflet() %>%
 
 
 
-
-
-
-
 Row {data-height=350}
 -----------------------------------------------------------------------
 
@@ -188,53 +184,71 @@ dd_nomenu
 ```
 
 
-<!-- ### Candidates with the most trips  -->
+### Candidates with the most trips
 
-<!-- ```{r bar_topcands} -->
-
-
-
-<!-- d <- ggplot(data = bycand, aes(x = cand_fullname, y = n)) + -->
-<!--   geom_col( -->
-<!--     # color = "#848484", -->
-<!--     fill = "#FFC966") + -->
-<!--   # coord_flip() + -->
-<!--   theme_minimal() -->
-
-<!-- d2 <- d + labs(x ="", y = "") + -->
-<!--   theme(plot.title = element_text(hjust = 0.5)) + -->
-<!--   # scale_fill_manual(values=cbPalette) + -->
-<!--   theme(legend.title=element_blank()) + -->
-<!--   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -->
-
-<!-- dd <- ggplotly(d2) -->
-
-<!-- dd_nomenu <- dd %>% config(displayModeBar = FALSE) -->
-<!-- dd_nomenu -->
+```{r bar_topcands}
 
 
-<!-- ``` -->
+d <- ggplot(data = bycand, aes(x = cand_fullname, y = n)) +
+  geom_col(
+    # color = "#848484",
+    fill = "#FFC966") +
+  # coord_flip() +
+  theme_minimal()
 
+d2 <- d + labs(x ="", y = "") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  # scale_fill_manual(values=cbPalette) +
+  theme(legend.title=element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+dd <- ggplotly(d2)
+
+dd_nomenu <- dd %>% config(displayModeBar = FALSE)
+dd_nomenu
+
+
+```
 
 
 
-<!-- Row  -->
-<!-- ----------------------------------------------------------------------- -->
 
-<!-- ### Total trips since midterms -->
+Row
+-----------------------------------------------------------------------
 
-<!-- ```{r box_pastevents} -->
+### Total trips since midterms
 
-<!-- tot <- events %>% -->
-<!--   filter(date < today("EST")) %>% -->
-<!--   nrow() -->
+```{r box_pastevents}
 
-<!-- valueBox(tot, icon = "fa-step-backward", color = "#F3B279") -->
+tot <- events %>%
+  filter(date < today("EST")) %>%
+  nrow()
 
-<!-- #where do the "font awesome" icons come from? -->
-<!-- # https://fontawesome.com/icons?d=gallery&m=free -->
+valueBox(tot, icon = "fa-angle-double-down", color = "#F3B279")
 
-<!-- ``` -->
+#where do the "font awesome" icons come from?
+# https://fontawesome.com/icons?d=gallery&m=free
 
-<!-- ### Another box here -->
+```
 
+### Which state had most visits
+
+```{r }
+
+valueBox("Iowa", icon = "fa-tractor", color = "green")
+
+#where do the "font awesome" icons come from?
+# https://fontawesome.com/icons?d=gallery&m=free
+
+```
+
+
+
+Trip Details
+=====================================
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Searchable Table of All Trips
